@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: steamnstats
+          POSTGRES_PASSWORD: steamnstats
+          POSTGRES_DB: steamnstats_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U steamnstats -d steamnstats_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend
+        run: cd backend && pip install uv && uv sync --extra dev --frozen
+      - name: Lint backend
+        run: cd backend && uv run ruff check app tests && uv run mypy app
+      - name: Test backend
+        run: cd backend && uv run pytest
+        env:
+          DATABASE_URL: postgresql+psycopg://steamnstats:steamnstats@localhost:5432/steamnstats_test
+          STEAM_WEB_API_KEY: test-key
+          JWT_SECRET_KEY: test-secret
+          JWT_REFRESH_SECRET_KEY: test-refresh-secret
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend
+        run: cd frontend && npm ci
+      - name: Lint frontend
+        run: cd frontend && npm run lint
+      - name: Test frontend
+        run: cd frontend && npm test -- --run
+      - name: Build frontend
+        run: cd frontend && npm run build
