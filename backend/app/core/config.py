@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     steam_web_api_key: str = ""
+    steam_endpoint_url: AnyHttpUrl | None = None
     steam_openid_realm: str = "http://localhost:8000"
     steam_openid_return_url: str = "http://localhost:8000/auth/steam/callback"
     steam_openid_verify: bool = True
@@ -35,6 +36,13 @@ class Settings(BaseSettings):
     def parse_cors_origins(cls, value: str | list[str]) -> list[str]:
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @field_validator("steam_endpoint_url", mode="before")
+    @classmethod
+    def parse_optional_url(cls, value: str | None) -> str | None:
+        if value == "":
+            return None
         return value
 
 

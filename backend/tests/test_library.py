@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from app.models import Game, User, UserGame
+from app.schemas import LibraryEntryRead
 from app.services.library import build_summary, metadata_is_stale
 
 
@@ -44,3 +45,15 @@ def test_summary_uses_current_prices_and_tracks_unavailable(session) -> None:
     assert summary.unavailable_prices == 1
     assert summary.total_playtime_minutes == 420
     assert summary.most_played[0].name == "Free"
+
+
+def test_library_entry_read_accepts_game_model() -> None:
+    entry = LibraryEntryRead(
+        game=Game(app_id=10, name="Counter-Strike", current_price_cents=999),
+        playtime_forever_minutes=1840,
+        playtime_2weeks_minutes=45,
+        last_synced_at=datetime.now(UTC),
+    )
+
+    assert entry.game.app_id == 10
+    assert entry.game.name == "Counter-Strike"

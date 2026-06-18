@@ -22,6 +22,8 @@ class UserRead(BaseModel):
 
 
 class GameRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     app_id: int
     name: str
     header_image: str | None = None

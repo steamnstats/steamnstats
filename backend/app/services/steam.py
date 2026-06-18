@@ -42,6 +42,30 @@ class StoreMetadata:
     is_free: bool
 
 
+def steam_openid_endpoint() -> str:
+    settings = get_settings()
+    if settings.steam_endpoint_url:
+        return f"{str(settings.steam_endpoint_url).rstrip('/')}/openid/login"
+    return STEAM_OPENID_ENDPOINT
+
+
+def steam_endpoint_base() -> str | None:
+    settings = get_settings()
+    return str(settings.steam_endpoint_url).rstrip("/") if settings.steam_endpoint_url else None
+
+
+def steam_api_base() -> str:
+    if endpoint_url := steam_endpoint_base():
+        return endpoint_url
+    return STEAM_API_BASE
+
+
+def steam_store_base() -> str:
+    if endpoint_url := steam_endpoint_base():
+        return endpoint_url
+    return STEAM_STORE_BASE
+
+
 def build_steam_login_url() -> str:
     settings = get_settings()
     params = {
@@ -52,7 +76,7 @@ def build_steam_login_url() -> str:
         "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
         "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
     }
-    return f"{STEAM_OPENID_ENDPOINT}?{urlencode(params)}"
+    return f"{steam_openid_endpoint()}?{urlencode(params)}"
 
 
 def extract_steam_id(claimed_id: str | None) -> str:
@@ -74,7 +98,7 @@ async def verify_openid_response(request: Request) -> str:
     verification_payload = dict(parse_qsl(request.url.query))
     verification_payload["openid.mode"] = "check_authentication"
     async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.post(STEAM_OPENID_ENDPOINT, data=verification_payload)
+        response = await client.post(steam_openid_endpoint(), data=verification_payload)
     response.raise_for_status()
     if "is_valid:true" not in response.text:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Steam login failed")
@@ -88,7 +112,7 @@ async def fetch_player_summary(steam_id: str) -> SteamProfile:
     params = {"key": settings.steam_web_api_key, "steamids": steam_id}
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.get(
-            f"{STEAM_API_BASE}/ISteamUser/GetPlayerSummaries/v0002/",
+            f"{steam_api_base()}/ISteamUser/GetPlayerSummaries/v0002/",
             params=params,
         )
     response.raise_for_status()
@@ -117,7 +141,7 @@ async def fetch_owned_games(steam_id: str) -> list[OwnedGame]:
     }
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.get(
-            f"{STEAM_API_BASE}/IPlayerService/GetOwnedGames/v0001/",
+            f"{steam_api_base()}/IPlayerService/GetOwnedGames/v0001/",
             params=params,
         )
     response.raise_for_status()
@@ -140,7 +164,7 @@ async def fetch_owned_games(steam_id: str) -> list[OwnedGame]:
 async def fetch_store_metadata(app_id: int) -> StoreMetadata | None:
     params: QueryParams = {"appids": app_id, "filters": "basic,price_overview"}
     async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-        response = await client.get(f"{STEAM_STORE_BASE}/appdetails", params=params)
+        response = await client.get(f"{steam_store_base()}/appdetails", params=params)
     response.raise_for_status()
     payload = response.json().get(str(app_id), {})
     if not payload.get("success"):

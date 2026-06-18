@@ -31,14 +31,31 @@ nullable future-provider fields.
    docker compose up --build
    ```
 
-4. Run migrations:
-
-   ```bash
-   docker compose exec backend alembic upgrade head
-   ```
-
 The frontend runs on `http://localhost:5173` and the API runs on
-`http://localhost:8000`.
+`http://localhost:8000`. The backend applies database migrations on startup.
+
+## Mock Steam API
+
+For local development without calling Steam, point the app at the mock service:
+
+```bash
+STEAM_ENDPOINT_URL=http://localhost:8001 docker compose --profile mock-steam up --build
+```
+
+Or put this in `.env`:
+
+```bash
+STEAM_ENDPOINT_URL=http://localhost:8001
+```
+
+Then start the stack with:
+
+```bash
+docker compose --profile mock-steam up --build
+```
+
+The login flow and backend Steam API calls use `http://localhost:8001` exactly
+as configured.
 
 ## Useful Commands
 
