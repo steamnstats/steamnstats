@@ -230,3 +230,6 @@ __marimo__/
 .impeccable/
 .agents/
 .spec/
+
+# Radon
+radon-cc.xml
