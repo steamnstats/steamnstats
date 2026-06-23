@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SteamNStats logo mark</title>
+  <desc id="desc">A navy circular Steam-inspired mark with white linkage and rising blue chart bars.</desc>
+  <defs>
+    <linearGradient id="navy" x1="40" y1="24" x2="214" y2="230" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#020A14"/>
+      <stop offset="1" stop-color="#13263F"/>
+    </linearGradient>
+    <linearGradient id="blueBars" x1="75" y1="210" x2="183" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1369C8"/>
+      <stop offset="0.55" stop-color="#1E6EEB"/>
+      <stop offset="1" stop-color="#60B1FF"/>
+    </linearGradient>
+    <clipPath id="disc">
+      <circle cx="128" cy="128" r="104"/>
+    </clipPath>
+  </defs>
+  <circle cx="128" cy="128" r="104" fill="url(#navy)"/>
+  <g clip-path="url(#disc)">
+    <path d="M67 178H91V218H67zM100 151H124V218H100zM133 124H157V218H133zM166 96H190V218H166z" fill="url(#blueBars)"/>
+    <path d="M67 178H91V218H67zM100 151H124V218H100zM133 124H157V218H133zM166 96H190V218H166z" fill="none" stroke="#E6EEF5" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M-6 126L64 157L118 98" fill="none" stroke="#FFFFFF" stroke-width="31" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M-6 126L64 157L118 98" fill="none" stroke="#E6EEF5" stroke-width="38" stroke-linecap="round" stroke-linejoin="round" opacity="0.28"/>
+    <circle cx="118" cy="98" r="34" fill="#FFFFFF"/>
+    <circle cx="118" cy="98" r="20" fill="url(#navy)"/>
+    <circle cx="118" cy="98" r="13" fill="#FFFFFF"/>
+    <circle cx="64" cy="157" r="27" fill="#FFFFFF"/>
+    <circle cx="64" cy="157" r="17" fill="url(#navy)"/>
+  </g>
+  <circle cx="128" cy="128" r="103" fill="none" stroke="#E6EEF5" stroke-width="2" opacity="0.45"/>
+</svg>
