@@ -127,7 +127,11 @@ jobs:
               const xml = fs.readFileSync(path.join(reportsDir, file), 'utf8');
               const suitesMatch = xml.match(/<testsuites\b[^>]*>/);
               const suiteMatch = xml.match(/<testsuite\b[^>]*>/);
-              const root = suitesMatch?.[0] ?? suiteMatch?.[0] ?? '';
+              const suitesRoot = suitesMatch?.[0] ?? '';
+              const suiteRoot = suiteMatch?.[0] ?? '';
+              const root = suitesRoot && attr(suitesRoot, 'tests') !== '0'
+                ? suitesRoot
+                : (suiteRoot || suitesRoot || '');
               const tests = Number(attr(root, 'tests'));
               const failures = Number(attr(root, 'failures'));
               const errors = Number(attr(root, 'errors'));
