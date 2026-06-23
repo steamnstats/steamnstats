@@ -37,6 +37,15 @@ jobs:
         run: cd backend && pip install uv && uv sync --extra dev --frozen
       - name: Lint backend
         run: cd backend && uv run ruff check app tests && uv run mypy app
+      - name: Code complexity (radon)
+        run: cd backend && mkdir -p reports && uv run radon cc app -a -nb --xml > reports/radon-cc.xml && uv run radon mi app -min B > reports/radon-mi.txt
+      - name: Upload radon report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radon-report
+          path: backend/reports/radon-*
+          if-no-files-found: warn
       - name: Test backend
         run: cd backend && mkdir -p reports && uv run pytest --junitxml=reports/backend-tests.xml
         env:

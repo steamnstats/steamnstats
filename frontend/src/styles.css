@@ -1444,6 +1444,7 @@ tbody tr:hover {
   .screen {
     height: auto;
     overflow-y: visible;
+    padding: 32px 16px 16px;
   }
 
   .stat-cards-row {
@@ -1456,7 +1457,7 @@ tbody tr:hover {
 
   .hero-section {
     flex-direction: column;
-    margin: -48px -16px 0;
+    margin: -32px -16px 0;
     padding: 32px 16px 24px;
   }
 
@@ -1464,13 +1465,98 @@ tbody tr:hover {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .variety-decoration {
+    display: none;
+  }
+
+  .go-to-library-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .most-played-image {
+    width: 120px;
+  }
+
+  .table-wrap {
+    border: 0;
+  }
+
+  .table-wrap table {
+    width: 100%;
+  }
+
+  .table-wrap thead {
+    display: none;
+  }
+
+  .table-wrap tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 12px;
+    padding: 14px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: var(--color-surface);
+  }
+
+  .table-wrap tr:hover {
+    background: var(--color-panel);
+  }
+
+  .table-wrap td {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+    font-size: 0.88rem;
+  }
+
+  .table-wrap td[data-label="Game"] {
+    grid-column: 1 / -1;
+  }
+
+  .table-wrap td[data-label="Playtime"]::before,
+  .table-wrap td[data-label="Price"]::before,
+  .table-wrap td[data-label="Updated"]::before {
+    content: attr(data-label);
+    color: var(--color-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  .table-wrap td[data-label="Updated"] {
+    grid-column: 1 / -1;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+  }
+
+  .table-wrap .game-cell {
+    min-width: 0;
+  }
+
+  .table-wrap .game-cell img,
+  .table-wrap .game-cell > div {
+    width: 56px;
+  }
+
+  .table-wrap .game-cell span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 560px) {
-  .screen {
-    padding: 32px 16px 16px;
-  }
-
   .hero-section {
     margin: -32px -16px 0;
   }
@@ -1643,6 +1729,15 @@ tbody tr:hover {
 
   .most-played-image {
     width: 100%;
+  }
+
+  .table-wrap tr {
+    grid-template-columns: 1fr;
+  }
+
+  .table-wrap td[data-label="Playtime"],
+  .table-wrap td[data-label="Price"] {
+    grid-column: 1 / -1;
   }
 }
 

@@ -51,6 +51,21 @@ function useAuthCallback(): boolean {
   return handled;
 }
 
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 900px)").matches : false
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    function onChange() { setIsMobile(mq.matches); }
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return isMobile;
+}
+
 export function App() {
   const callbackHandled = useAuthCallback();
   const [isAuthenticated, setAuthenticated] = useState(Boolean(getAccessToken()));
@@ -64,9 +79,12 @@ export function App() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeScreen, setActiveScreen] = useState<"home" | "library">("home");
   const [navDirection, setNavDirection] = useState<1 | -1>(1);
+  const isMobile = useIsMobile();
   const mainRef = useRef<HTMLElement>(null);
   const activeScreenRef = useRef(activeScreen);
   activeScreenRef.current = activeScreen;
+  const isMobileRef = useRef(isMobile);
+  isMobileRef.current = isMobile;
 
   function switchScreen(next: "home" | "library", direction: 1 | -1 = 1) {
     setNavDirection(direction);
@@ -78,9 +96,22 @@ export function App() {
     if (!main) return;
 
     let cooldown = false;
+    let cooldownTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function startCooldown() {
+      cooldown = true;
+      if (cooldownTimer) clearTimeout(cooldownTimer);
+      cooldownTimer = setTimeout(() => { cooldown = false; }, 100);
+    }
 
     function onWheel(e: WheelEvent) {
-      if (cooldown) return;
+      if (isMobileRef.current) return;
+
+      if (cooldown) {
+        if (cooldownTimer) clearTimeout(cooldownTimer);
+        cooldownTimer = setTimeout(() => { cooldown = false; }, 100);
+        return;
+      }
 
       const screens = main!.querySelectorAll(".screen");
       const screen = Array.from(screens).find(
@@ -95,14 +126,12 @@ export function App() {
         const idx = SCREENS.indexOf(activeScreenRef.current);
         const nextIdx = (idx + 1) % SCREENS.length;
         switchScreen(SCREENS[nextIdx], 1);
-        cooldown = true;
-        setTimeout(() => { cooldown = false; }, 1000);
+        startCooldown();
       } else if (e.deltaY < 0 && !canScrollUp) {
         const idx = SCREENS.indexOf(activeScreenRef.current);
         const prevIdx = (idx - 1 + SCREENS.length) % SCREENS.length;
         switchScreen(SCREENS[prevIdx], -1);
-        cooldown = true;
-        setTimeout(() => { cooldown = false; }, 1000);
+        startCooldown();
       }
     }
 
@@ -256,9 +285,9 @@ export function App() {
             <motion.div
               key="home"
               className="screen"
-              initial={{ opacity: 0, y: `${navDirection * 100}%` }}
+              initial={{ opacity: 0, y: isMobile ? 24 : `${navDirection * 100}%` }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: `${navDirection * -100}%` }}
+              exit={{ opacity: 0, y: isMobile ? -24 : `${navDirection * -100}%` }}
               transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
             >
               <section className="hero-section">
@@ -327,9 +356,9 @@ export function App() {
             <motion.div
               key="library"
               className="screen"
-              initial={{ opacity: 0, y: `${navDirection * 100}%` }}
+              initial={{ opacity: 0, y: isMobile ? 24 : `${navDirection * 100}%` }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: `${navDirection * -100}%` }}
+              exit={{ opacity: 0, y: isMobile ? -24 : `${navDirection * -100}%` }}
               transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
             >
               {error ? <div className="alert">{error}</div> : null}
@@ -660,17 +689,17 @@ function LibraryTable({ entries }: { entries: LibraryEntry[] }) {
         <tbody>
           {entries.map((entry) => (
             <tr key={entry.game.app_id}>
-              <td>
+              <td data-label="Game">
                 <div className="game-cell">
                   {entry.game.header_image ? <img src={entry.game.header_image} alt="" /> : <div />}
                   <span>{entry.game.name}</span>
                 </div>
               </td>
-              <td>{formatPlaytime(entry.playtime_forever_minutes)}</td>
-              <td>
+              <td data-label="Playtime">{formatPlaytime(entry.playtime_forever_minutes)}</td>
+              <td data-label="Price">
                 <PriceBadge entry={entry} />
               </td>
-              <td>{formatDateTime(entry.game.metadata_fetched_at)}</td>
+              <td data-label="Updated">{formatDateTime(entry.game.metadata_fetched_at)}</td>
             </tr>
           ))}
         </tbody>
