@@ -130,6 +130,7 @@ describe("App", () => {
     render(<App />);
     await screen.findAllByText("Counter-Strike");
 
+    await userEvent.click(screen.getByRole("button", { name: /^library$/i }));
     await userEvent.type(screen.getByPlaceholderText("Search games"), "portal");
 
     await waitFor(() => {
