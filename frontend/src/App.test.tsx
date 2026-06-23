@@ -115,9 +115,12 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("Tester")).toBeInTheDocument();
+    await screen.findByText("$39.99");
     expect(screen.getByText("$39.99")).toBeInTheDocument();
     expect(screen.getAllByText("Counter-Strike").length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole("button", { name: /user menu/i }));
+    expect(screen.getByText("Tester")).toBeInTheDocument();
   });
 
   it("filters library rows", async () => {
