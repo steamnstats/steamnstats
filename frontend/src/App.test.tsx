@@ -123,6 +123,33 @@ describe("App", () => {
     expect(screen.getByText("Tester")).toBeInTheDocument();
   });
 
+  it("sorts library by column", async () => {
+    localStorage.setItem("steamnstats.accessToken", "access");
+    localStorage.setItem("steamnstats.refreshToken", "refresh");
+
+    render(<App />);
+    await screen.findAllByText("Counter-Strike");
+
+    await userEvent.click(screen.getByRole("button", { name: /^library$/i }));
+
+    const table = screen.getByRole("table");
+    const rows = () => within(table).getAllByRole("row").slice(1);
+
+    expect(rows()[0]).toHaveTextContent("Counter-Strike");
+
+    await userEvent.click(screen.getByRole("button", { name: /^game$/i }));
+    await waitFor(() => {
+      expect(rows()[0]).toHaveTextContent("Counter-Strike");
+      expect(rows()[1]).toHaveTextContent("Portal");
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /^game$/i }));
+    await waitFor(() => {
+      expect(rows()[0]).toHaveTextContent("Portal");
+      expect(rows()[1]).toHaveTextContent("Counter-Strike");
+    });
+  });
+
   it("filters library rows", async () => {
     localStorage.setItem("steamnstats.accessToken", "access");
     localStorage.setItem("steamnstats.refreshToken", "refresh");
