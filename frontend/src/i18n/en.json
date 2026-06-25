@@ -1,0 +1,98 @@
+{
+  "nav": {
+    "home": "Home",
+    "library": "Library",
+    "settings": "Settings"
+  },
+  "user": {
+    "signedInAs": "Signed in as",
+    "steamUser": "Steam user",
+    "logOut": "Log out",
+    "settings": "Settings"
+  },
+  "hero": {
+    "titleLine1": "Your games.",
+    "titleLine2": "Your world.",
+    "subtitle": "Explore your Steam library with prices and playtime.",
+    "sync": "Sync",
+    "syncing": "Syncing"
+  },
+  "stats": {
+    "estimatedValue": "Estimated Value",
+    "hoursPlayed": "Hours Played",
+    "gamesOwned": "Games Owned",
+    "achievements": "Achievements",
+    "gamesCompleted": "Games Completed"
+  },
+  "mostPlayed": {
+    "label": "Most Played Game",
+    "hoursPlayed": "Hours Played",
+    "noData": "No playtime data yet",
+    "goToLibrary": "Go to Library"
+  },
+  "gameVariety": {
+    "label": "Game Variety",
+    "explored": "You've explored <strong>{{count}}</strong> different genres",
+    "comingSoon": "Genre data coming soon",
+    "more": "+ {{count}} more"
+  },
+  "library": {
+    "title": "Library",
+    "description": "Current store prices are cached and refreshed periodically.",
+    "searchPlaceholder": "Search games",
+    "searchLabel": "Search games",
+    "emptyTitle": "No games to show",
+    "emptyAction": "Sync library",
+    "colGame": "Game",
+    "colPlaytime": "Playtime",
+    "colPrice": "Current price",
+    "colUpdated": "Updated"
+  },
+  "price": {
+    "free": "Free",
+    "unavailable": "Unavailable"
+  },
+  "format": {
+    "never": "Never"
+  },
+  "loading": {
+    "dashboard": "Loading dashboard",
+    "app": "Loading"
+  },
+  "login": {
+    "kicker": "SteamNStats library command",
+    "title": "Your Steam library, priced and mapped.",
+    "lede": "Sign in once to turn owned games, playtime, and current Steam store prices into a private instrument panel for your collection. Every value stays labeled as an estimate.",
+    "privateScan": "Private scan",
+    "openIdVerified": "OpenID verified, no Steam password shared",
+    "signInWithSteam": "Sign in with Steam",
+    "step1": "Import owned games",
+    "step2": "Cache store prices",
+    "step3": "Map value and playtime",
+    "previewFirstSync": "First sync preview",
+    "previewPanel": "Library instrument panel",
+    "previewScanning": "Scanning prices",
+    "previewEstimatedValue": "Estimated value",
+    "previewOwnedGames": "Owned games",
+    "previewPlaytime": "Playtime",
+    "previewMostPlayed": "Most played game",
+    "previewMostPlayedHours": "312 hours tracked",
+    "previewBestSale": "Best sale find",
+    "previewBestSaleDetail": "75% off current price",
+    "previewNeedsPrice": "Needs a price",
+    "previewNeedsPriceDetail": "Unavailable in store cache",
+    "previewCheck": "Check",
+    "previewRefreshStatus": "Refresh status",
+    "previewCacheUpdated": "Store cache updated",
+    "previewEstimateDetail": "Estimate detail",
+    "previewPricedGames": "142 priced games"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your preferences.",
+    "language": "Language",
+    "languageDescription": "Choose your preferred interface language.",
+    "english": "English",
+    "portuguese": "Português (Brasil)"
+  }
+}

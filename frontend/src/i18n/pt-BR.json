@@ -1,0 +1,98 @@
+{
+  "nav": {
+    "home": "Início",
+    "library": "Biblioteca",
+    "settings": "Configurações"
+  },
+  "user": {
+    "signedInAs": "Conectado como",
+    "steamUser": "Usuário Steam",
+    "logOut": "Sair",
+    "settings": "Configurações"
+  },
+  "hero": {
+    "titleLine1": "Seus jogos.",
+    "titleLine2": "Seu mundo.",
+    "subtitle": "Explore sua biblioteca Steam com preços e tempo de jogo.",
+    "sync": "Sincronizar",
+    "syncing": "Sincronizando"
+  },
+  "stats": {
+    "estimatedValue": "Valor Estimado",
+    "hoursPlayed": "Horas Jogadas",
+    "gamesOwned": "Jogos Possuídos",
+    "achievements": "Conquistas",
+    "gamesCompleted": "Jogos Zerados"
+  },
+  "mostPlayed": {
+    "label": "Jogo Mais Jogado",
+    "hoursPlayed": "Horas Jogadas",
+    "noData": "Sem dados de tempo de jogo ainda",
+    "goToLibrary": "Ir para Biblioteca"
+  },
+  "gameVariety": {
+    "label": "Variedade de Jogos",
+    "explored": "Você explorou <strong>{{count}}</strong> gêneros diferentes",
+    "comingSoon": "Dados de gêneros em breve",
+    "more": "+ {{count}} mais"
+  },
+  "library": {
+    "title": "Biblioteca",
+    "description": "Os preços atuais da loja são armazenados em cache e atualizados periodicamente.",
+    "searchPlaceholder": "Buscar jogos",
+    "searchLabel": "Buscar jogos",
+    "emptyTitle": "Nenhum jogo para mostrar",
+    "emptyAction": "Sincronizar biblioteca",
+    "colGame": "Jogo",
+    "colPlaytime": "Tempo de jogo",
+    "colPrice": "Preço atual",
+    "colUpdated": "Atualizado"
+  },
+  "price": {
+    "free": "Grátis",
+    "unavailable": "Indisponível"
+  },
+  "format": {
+    "never": "Nunca"
+  },
+  "loading": {
+    "dashboard": "Carregando painel",
+    "app": "Carregando"
+  },
+  "login": {
+    "kicker": "Comando da biblioteca SteamNStats",
+    "title": "Sua biblioteca Steam, precificada e mapeada.",
+    "lede": "Entre uma vez para transformar jogos possuídos, tempo de jogo e preços atuais da Steam em um painel privado para sua coleção. Cada valor permanece rotulado como estimativa.",
+    "privateScan": "Escaneamento privado",
+    "openIdVerified": "Verificado por OpenID, sem senha da Steam compartilhada",
+    "signInWithSteam": "Entrar com Steam",
+    "step1": "Importar jogos possuídos",
+    "step2": "Armazenar preços da loja",
+    "step3": "Mapear valor e tempo de jogo",
+    "previewFirstSync": "Prévia da primeira sincronização",
+    "previewPanel": "Painel da biblioteca",
+    "previewScanning": "Escaneando preços",
+    "previewEstimatedValue": "Valor estimado",
+    "previewOwnedGames": "Jogos possuídos",
+    "previewPlaytime": "Tempo de jogo",
+    "previewMostPlayed": "Jogo mais jogado",
+    "previewMostPlayedHours": "312 horas registradas",
+    "previewBestSale": "Melhor oferta",
+    "previewBestSaleDetail": "75% de desconto no preço atual",
+    "previewNeedsPrice": "Precisa de preço",
+    "previewNeedsPriceDetail": "Indisponível no cache da loja",
+    "previewCheck": "Verificar",
+    "previewRefreshStatus": "Status de atualização",
+    "previewCacheUpdated": "Cache da loja atualizado",
+    "previewEstimateDetail": "Detalhe da estimativa",
+    "previewPricedGames": "142 jogos precificados"
+  },
+  "settings": {
+    "title": "Configurações",
+    "description": "Gerencie suas preferências.",
+    "language": "Idioma",
+    "languageDescription": "Escolha o idioma de sua preferência.",
+    "english": "English",
+    "portuguese": "Português (Brasil)"
+  }
+}
