@@ -71,6 +71,7 @@ a {
   position: sticky;
   top: 0;
   overflow: visible;
+  z-index: 200;
 }
 
 .sidebar-logo {
@@ -677,6 +678,68 @@ a {
   margin: 0;
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+/* ---- Settings panel ---- */
+
+.settings-panel {
+  max-width: 640px;
+}
+
+.settings-group {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  padding: 18px;
+}
+
+.settings-group-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.settings-group-header h3 {
+  margin: 0 0 2px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.settings-group-header p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.settings-language-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-language-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.settings-language-option:hover {
+  border-color: var(--color-border-hover);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.settings-language-option.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .search-box {

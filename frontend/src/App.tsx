@@ -10,6 +10,7 @@ import {
   LogOut,
   RefreshCw,
   Search,
+  Settings,
   ShieldCheck,
   BarChart3,
   Database,
@@ -17,14 +18,18 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, clearTokens, getAccessToken, getRefreshToken, setTokens } from "./api";
 import logoMark from "./assets/steamnstats-logo.svg";
 import { formatDateTime, formatMoney, formatPlaytime } from "./format";
+import { LANGUAGES, setStoredLanguage, type Language } from "./i18n";
 import type { GenreStat, LibraryEntry, Summary, User } from "./types";
 
 type LoadState = "idle" | "loading" | "loaded" | "error";
 
-const SCREENS = ["home", "library"] as const;
+type Screen = "home" | "library" | "settings";
+
+const SCREENS: Screen[] = ["home", "library", "settings"];
 
 const MOCK_GENRES: GenreStat[] = [
   { name: "RPG", count: 0 },
@@ -67,6 +72,7 @@ function useIsMobile(): boolean {
 }
 
 export function App() {
+  const { t } = useTranslation();
   const callbackHandled = useAuthCallback();
   const [isAuthenticated, setAuthenticated] = useState(Boolean(getAccessToken()));
   const [user, setUser] = useState<User | null>(null);
@@ -77,7 +83,7 @@ export function App() {
   const [isSyncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState("");
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [activeScreen, setActiveScreen] = useState<"home" | "library">("home");
+  const [activeScreen, setActiveScreen] = useState<Screen>("home");
   const [navDirection, setNavDirection] = useState<1 | -1>(1);
   const isMobile = useIsMobile();
   const mainRef = useRef<HTMLElement>(null);
@@ -86,7 +92,7 @@ export function App() {
   const isMobileRef = useRef(isMobile);
   isMobileRef.current = isMobile;
 
-  function switchScreen(next: "home" | "library", direction: 1 | -1 = 1) {
+  function switchScreen(next: Screen, direction: 1 | -1 = 1) {
     setNavDirection(direction);
     setActiveScreen(next);
   }
@@ -236,16 +242,23 @@ export function App() {
           <button
             className={`nav-item ${activeScreen === "home" ? "active" : ""}`}
             onClick={() => switchScreen("home")}
-            aria-label="Home"
+            aria-label={t("nav.home")}
           >
             <Home size={20} aria-hidden="true" />
           </button>
           <button
             className={`nav-item ${activeScreen === "library" ? "active" : ""}`}
             onClick={() => switchScreen("library")}
-            aria-label="Library"
+            aria-label={t("nav.library")}
           >
             <Gamepad2 size={20} aria-hidden="true" />
+          </button>
+          <button
+            className={`nav-item ${activeScreen === "settings" ? "active" : ""}`}
+            onClick={() => switchScreen("settings")}
+            aria-label={t("nav.settings")}
+          >
+            <Settings size={20} aria-hidden="true" />
           </button>
         </nav>
 
@@ -266,12 +279,16 @@ export function App() {
             {showUserMenu && (
               <div className="user-dropdown">
                 <div className="user-dropdown-info">
-                  <span className="muted-label">Signed in as</span>
-                  <strong>{user?.persona_name ?? user?.steam_id ?? "Steam user"}</strong>
+                  <span className="muted-label">{t("user.signedInAs")}</span>
+                  <strong>{user?.persona_name ?? user?.steam_id ?? t("user.steamUser")}</strong>
                 </div>
+                <button className="user-dropdown-item" onClick={() => { setShowUserMenu(false); switchScreen("settings"); }}>
+                  <Settings size={16} aria-hidden="true" />
+                  {t("user.settings")}
+                </button>
                 <button className="user-dropdown-item" onClick={handleLogout}>
                   <LogOut size={16} aria-hidden="true" />
-                  Log out
+                  {t("user.logOut")}
                 </button>
               </div>
             )}
@@ -293,15 +310,15 @@ export function App() {
               <section className="hero-section">
                 <div className="hero-content">
                   <h1 className="hero-title">
-                    Your games.<br />
-                    <span className="hero-accent">Your world.</span>
+                    {t("hero.titleLine1")}<br />
+                    <span className="hero-accent">{t("hero.titleLine2")}</span>
                   </h1>
-                  <p className="hero-subtitle">A lifetime of adventures, summarized.</p>
+                  <p className="hero-subtitle">{t("hero.subtitle")}</p>
                 </div>
                 <div className="hero-actions">
                   <button className="button secondary" onClick={handleSync} disabled={isSyncing}>
                     <RefreshCw size={17} className={isSyncing ? "spin" : ""} aria-hidden="true" />
-                    {isSyncing ? "Syncing" : "Sync"}
+                    {isSyncing ? t("hero.syncing") : t("hero.sync")}
                   </button>
                 </div>
               </section>
@@ -314,32 +331,32 @@ export function App() {
                     <StatCard
                       icon={<CircleDollarSign size={22} aria-hidden="true" />}
                       iconColor="green"
-                      label="Estimated Value"
+                      label={t("stats.estimatedValue")}
                       value={formatMoney(summary.estimated_value_cents, summary.currency)}
                     />
                     <StatCard
                       icon={<Clock3 size={22} aria-hidden="true" />}
                       iconColor="blue"
-                      label="Hours Played"
+                      label={t("stats.hoursPlayed")}
                       value={formatPlaytime(summary.total_playtime_minutes)}
                     />
                     <StatCard
                       icon={<Gamepad2 size={22} aria-hidden="true" />}
                       iconColor="yellow"
-                      label="Games Played"
+                      label={t("stats.gamesOwned")}
                       value={summary.owned_games.toLocaleString()}
                     />
                     <StatCard
                       icon={<Award size={22} aria-hidden="true" />}
                       iconColor="gold"
-                      label="Achievements"
+                      label={t("stats.achievements")}
                       value="—"
                       placeholder
                     />
                     <StatCard
                       icon={<CheckCircle size={22} aria-hidden="true" />}
                       iconColor="pink"
-                      label="Games Completed"
+                      label={t("stats.gamesCompleted")}
                       value="—"
                       placeholder
                     />
@@ -352,7 +369,7 @@ export function App() {
                 </>
               ) : null}
             </motion.div>
-          ) : (
+          ) : activeScreen === "library" ? (
             <motion.div
               key="library"
               className="screen"
@@ -367,26 +384,37 @@ export function App() {
                 <section id="library" className="panel library-panel">
                   <div className="section-heading">
                     <div>
-                      <h2>Library</h2>
-                      <p>Current store prices are cached and refreshed periodically.</p>
+                      <h2>{t("library.title")}</h2>
+                      <p>{t("library.description")}</p>
                     </div>
                     <label className="search-box">
                       <Search size={17} aria-hidden="true" />
-                      <span className="sr-only">Search games</span>
+                      <span className="sr-only">{t("library.searchLabel")}</span>
                       <input
                         value={filter}
                         onChange={(event) => setFilter(event.target.value)}
-                        placeholder="Search games"
+                        placeholder={t("library.searchPlaceholder")}
                       />
                     </label>
                   </div>
                   {filteredLibrary.length > 0 ? (
                     <LibraryTable entries={filteredLibrary} />
                   ) : (
-                    <EmptyState title="No games to show" action="Sync library" onAction={handleSync} />
+                    <EmptyState title={t("library.emptyTitle")} action={t("library.emptyAction")} onAction={handleSync} />
                   )}
                 </section>
               ) : null}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="settings"
+              className="screen"
+              initial={{ opacity: 0, y: isMobile ? 24 : `${navDirection * 100}%` }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: isMobile ? -24 : `${navDirection * -100}%` }}
+              transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <SettingsScreen />
             </motion.div>
           )}
         </AnimatePresence>
@@ -396,26 +424,24 @@ export function App() {
 }
 
 function LoginScreen() {
+  const { t } = useTranslation();
   return (
     <main className="login-screen">
       <section className="login-hero" aria-labelledby="login-title">
         <div className="login-copy">
           <BrandMark size="large" />
-          <span className="login-kicker">SteamNStats library command</span>
-          <h1 id="login-title">Your Steam library, priced and mapped.</h1>
-          <p className="login-lede">
-            Sign in once to turn owned games, playtime, and current Steam store prices into a
-            private instrument panel for your collection. Every value stays labeled as an estimate.
-          </p>
+          <span className="login-kicker">{t("login.kicker")}</span>
+          <h1 id="login-title">{t("login.title")}</h1>
+          <p className="login-lede">{t("login.lede")}</p>
 
           <div className="login-command-card">
             <div className="login-command-status">
-              <span>Private scan</span>
-              <strong>OpenID verified, no Steam password shared</strong>
+              <span>{t("login.privateScan")}</span>
+              <strong>{t("login.openIdVerified")}</strong>
             </div>
             <a className="button primary login-cta" href={api.steamLoginUrl}>
               <ShieldCheck size={18} aria-hidden="true" />
-              Sign in with Steam
+              {t("login.signInWithSteam")}
             </a>
           </div>
 
@@ -423,17 +449,17 @@ function LoginScreen() {
             <div className="scan-step active">
               <LibraryBig size={18} aria-hidden="true" />
               <strong>01</strong>
-              <span>Import owned games</span>
+              <span>{t("login.step1")}</span>
             </div>
             <div className="scan-step">
               <Database size={18} aria-hidden="true" />
               <strong>02</strong>
-              <span>Cache store prices</span>
+              <span>{t("login.step2")}</span>
             </div>
             <div className="scan-step">
               <BarChart3 size={18} aria-hidden="true" />
               <strong>03</strong>
-              <span>Map value and playtime</span>
+              <span>{t("login.step3")}</span>
             </div>
           </div>
         </div>
@@ -458,23 +484,23 @@ function LoginScreen() {
             <div className="demo-content">
               <div className="preview-topline">
                 <div>
-                  <span>First sync preview</span>
-                  <strong>Library instrument panel</strong>
+                  <span>{t("login.previewFirstSync")}</span>
+                  <strong>{t("login.previewPanel")}</strong>
                 </div>
-                <span className="sync-pill">Scanning prices</span>
+                <span className="sync-pill">{t("login.previewScanning")}</span>
               </div>
 
               <div className="preview-metrics">
                 <div className="demo-focus-card">
-                  <span>Estimated value</span>
+                  <span>{t("login.previewEstimatedValue")}</span>
                   <strong>$428.71</strong>
                 </div>
                 <div>
-                  <span>Owned games</span>
+                  <span>{t("login.previewOwnedGames")}</span>
                   <strong>146</strong>
                 </div>
                 <div>
-                  <span>Playtime</span>
+                  <span>{t("login.previewPlaytime")}</span>
                   <strong>1,284h</strong>
                 </div>
               </div>
@@ -493,44 +519,88 @@ function LoginScreen() {
                 <div className="preview-row row-playing">
                   <span className="game-strip blue" />
                   <div>
-                    <strong>Most played game</strong>
-                    <span>312 hours tracked</span>
+                    <strong>{t("login.previewMostPlayed")}</strong>
+                    <span>{t("login.previewMostPlayedHours")}</span>
                   </div>
                   <b>$19.99</b>
                 </div>
                 <div className="preview-row row-sale">
                   <span className="game-strip green" />
                   <div>
-                    <strong>Best sale find</strong>
-                    <span>75% off current price</span>
+                    <strong>{t("login.previewBestSale")}</strong>
+                    <span>{t("login.previewBestSaleDetail")}</span>
                   </div>
                   <b>$4.99</b>
                 </div>
                 <div className="preview-row row-cache">
                   <span className="game-strip slate" />
                   <div>
-                    <strong>Needs a price</strong>
-                    <span>Unavailable in store cache</span>
+                    <strong>{t("login.previewNeedsPrice")}</strong>
+                    <span>{t("login.previewNeedsPriceDetail")}</span>
                   </div>
-                  <b>Check</b>
+                  <b>{t("login.previewCheck")}</b>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="demo-popover demo-popover-sync" aria-hidden="true">
-            <span>Refresh status</span>
-            <strong>Store cache updated</strong>
+            <span>{t("login.previewRefreshStatus")}</span>
+            <strong>{t("login.previewCacheUpdated")}</strong>
           </div>
           <div className="demo-popover demo-popover-value" aria-hidden="true">
-            <span>Estimate detail</span>
-            <strong>142 priced games</strong>
+            <span>{t("login.previewEstimateDetail")}</span>
+            <strong>{t("login.previewPricedGames")}</strong>
           </div>
           <span className="demo-cursor" aria-hidden="true" />
         </aside>
 
       </section>
     </main>
+  );
+}
+
+function SettingsScreen() {
+  const { t, i18n } = useTranslation();
+  const [selectedLang, setSelectedLang] = useState<Language>(i18n.language as Language);
+
+  function changeLanguage(lang: Language) {
+    setSelectedLang(lang);
+    setStoredLanguage(lang);
+    void i18n.changeLanguage(lang);
+  }
+
+  return (
+    <section id="settings" className="panel settings-panel">
+      <div className="section-heading">
+        <div>
+          <h2>{t("settings.title")}</h2>
+          <p>{t("settings.description")}</p>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <div className="settings-group-header">
+          <Settings size={20} aria-hidden="true" />
+          <div>
+            <h3>{t("settings.language")}</h3>
+            <p>{t("settings.languageDescription")}</p>
+          </div>
+        </div>
+        <div className="settings-language-options">
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang}
+              className={`settings-language-option ${selectedLang === lang ? "active" : ""}`}
+              onClick={() => changeLanguage(lang)}
+            >
+              {lang === "en" ? t("settings.english") : t("settings.portuguese")}
+              {selectedLang === lang && <CheckCircle size={18} aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -608,9 +678,10 @@ function MostPlayedCard({
   game: { app_id: number; name: string; playtime_forever_minutes: number; header_image: string | null } | null;
   onGoToLibrary: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <article className="most-played-card">
-      <span className="card-label">Most Played Game</span>
+      <span className="card-label">{t("mostPlayed.label")}</span>
       {game ? (
         <div className="most-played-content">
           <div className="most-played-info">
@@ -618,7 +689,7 @@ function MostPlayedCard({
             <div className="most-played-playtime">
               <Clock3 size={18} aria-hidden="true" />
               <strong>{formatPlaytime(game.playtime_forever_minutes)}</strong>
-              <span>Hours Played</span>
+              <span>{t("mostPlayed.hoursPlayed")}</span>
             </div>
           </div>
           {game.header_image && (
@@ -626,11 +697,11 @@ function MostPlayedCard({
           )}
         </div>
       ) : (
-        <p className="most-played-empty">No playtime data yet</p>
+        <p className="most-played-empty">{t("mostPlayed.noData")}</p>
       )}
       <button className="go-to-library-btn" onClick={onGoToLibrary}>
         <LibraryBig size={18} aria-hidden="true" />
-        Go to Library
+        {t("mostPlayed.goToLibrary")}
         <ArrowRight size={16} aria-hidden="true" />
       </button>
     </article>
@@ -644,17 +715,18 @@ function GameVarietyCard({
   genres: GenreStat[];
   totalGenres: number;
 }) {
+  const { t } = useTranslation();
   const remaining = totalGenres > genres.length ? totalGenres - genres.length : 0;
 
   return (
     <article className="game-variety-card">
-      <h3 className="card-label">Game Variety</h3>
+      <h3 className="card-label">{t("gameVariety.label")}</h3>
       {totalGenres > 0 ? (
         <p className="variety-subtitle">
-          You've explored <strong>{totalGenres}</strong> different genres
+          <span dangerouslySetInnerHTML={{ __html: t("gameVariety.explored", { count: totalGenres }) }} />
         </p>
       ) : (
-        <p className="variety-subtitle">Genre data coming soon</p>
+        <p className="variety-subtitle">{t("gameVariety.comingSoon")}</p>
       )}
       <div className="genre-tags">
         {genres.map((g) => (
@@ -664,7 +736,7 @@ function GameVarietyCard({
           </div>
         ))}
         {remaining > 0 && (
-          <div className="genre-tag genre-tag-more">+ {remaining} more</div>
+          <div className="genre-tag genre-tag-more">{t("gameVariety.more", { count: remaining })}</div>
         )}
       </div>
       <div className="variety-decoration" aria-hidden="true">
@@ -675,31 +747,32 @@ function GameVarietyCard({
 }
 
 function LibraryTable({ entries }: { entries: LibraryEntry[] }) {
+  const { t } = useTranslation();
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Game</th>
-            <th>Playtime</th>
-            <th>Current price</th>
-            <th>Updated</th>
+            <th>{t("library.colGame")}</th>
+            <th>{t("library.colPlaytime")}</th>
+            <th>{t("library.colPrice")}</th>
+            <th>{t("library.colUpdated")}</th>
           </tr>
         </thead>
         <tbody>
           {entries.map((entry) => (
             <tr key={entry.game.app_id}>
-              <td data-label="Game">
+              <td data-label={t("library.colGame")}>
                 <div className="game-cell">
                   {entry.game.header_image ? <img src={entry.game.header_image} alt="" /> : <div />}
                   <span>{entry.game.name}</span>
                 </div>
               </td>
-              <td data-label="Playtime">{formatPlaytime(entry.playtime_forever_minutes)}</td>
-              <td data-label="Price">
+              <td data-label={t("library.colPlaytime")}>{formatPlaytime(entry.playtime_forever_minutes)}</td>
+              <td data-label={t("library.colPrice")}>
                 <PriceBadge entry={entry} />
               </td>
-              <td data-label="Updated">{formatDateTime(entry.game.metadata_fetched_at)}</td>
+              <td data-label={t("library.colUpdated")}>{formatDateTime(entry.game.metadata_fetched_at)}</td>
             </tr>
           ))}
         </tbody>
@@ -709,12 +782,13 @@ function LibraryTable({ entries }: { entries: LibraryEntry[] }) {
 }
 
 function PriceBadge({ entry }: { entry: LibraryEntry }) {
+  const { t } = useTranslation();
   if (entry.game.is_free) {
-    return <span className="price-badge free">Free</span>;
+    return <span className="price-badge free">{t("price.free")}</span>;
   }
 
   if (entry.game.current_price_cents === null) {
-    return <span className="price-badge unavailable">Unavailable</span>;
+    return <span className="price-badge unavailable">{t("price.unavailable")}</span>;
   }
 
   return (
@@ -745,8 +819,9 @@ function EmptyState({
 }
 
 function DashboardSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div className="skeleton-stack" aria-label="Loading dashboard">
+    <div className="skeleton-stack" aria-label={t("loading.dashboard")}>
       <div className="skeleton-row" />
       <div className="skeleton-row" />
       <div className="skeleton-row" />
@@ -755,5 +830,6 @@ function DashboardSkeleton() {
 }
 
 function ShellSkeleton() {
-  return <div className="page-skeleton" aria-label="Loading" />;
+  const { t } = useTranslation();
+  return <div className="page-skeleton" aria-label={t("loading.app")} />;
 }
