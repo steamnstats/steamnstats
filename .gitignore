@@ -225,3 +225,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# AI
+.impeccable/
+.agents/
+.spec/
+
+# Radon
+radon-cc.xml

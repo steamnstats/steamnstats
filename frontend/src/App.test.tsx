@@ -115,9 +115,12 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText("Tester")).toBeInTheDocument();
+    await screen.findByText("$39.99");
     expect(screen.getByText("$39.99")).toBeInTheDocument();
     expect(screen.getAllByText("Counter-Strike").length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole("button", { name: /user menu/i }));
+    expect(screen.getByText("Tester")).toBeInTheDocument();
   });
 
   it("filters library rows", async () => {
@@ -127,6 +130,7 @@ describe("App", () => {
     render(<App />);
     await screen.findAllByText("Counter-Strike");
 
+    await userEvent.click(screen.getByRole("button", { name: /^library$/i }));
     await userEvent.type(screen.getByPlaceholderText("Search games"), "portal");
 
     await waitFor(() => {

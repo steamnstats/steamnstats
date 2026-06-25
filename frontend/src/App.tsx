@@ -1,22 +1,38 @@
 import {
-  BarChart3,
+  Award,
+  CheckCircle,
+  ChevronDown,
   CircleDollarSign,
   Clock3,
-  Database,
   Gamepad2,
+  Home,
   LibraryBig,
   LogOut,
   RefreshCw,
   Search,
-  ShieldCheck
+  ShieldCheck,
+  BarChart3,
+  Database,
+  ArrowRight
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, clearTokens, getAccessToken, getRefreshToken, setTokens } from "./api";
 import logoMark from "./assets/steamnstats-logo.svg";
 import { formatDateTime, formatMoney, formatPlaytime } from "./format";
-import type { LibraryEntry, Summary, User } from "./types";
+import type { GenreStat, LibraryEntry, Summary, User } from "./types";
 
 type LoadState = "idle" | "loading" | "loaded" | "error";
+
+const SCREENS = ["home", "library"] as const;
+
+const MOCK_GENRES: GenreStat[] = [
+  { name: "RPG", count: 0 },
+  { name: "Action", count: 0 },
+  { name: "Adventure", count: 0 },
+  { name: "Indie", count: 0 },
+  { name: "Strategy", count: 0 }
+];
 
 function useAuthCallback(): boolean {
   const [handled, setHandled] = useState(false);
@@ -35,6 +51,21 @@ function useAuthCallback(): boolean {
   return handled;
 }
 
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 900px)").matches : false
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    function onChange() { setIsMobile(mq.matches); }
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return isMobile;
+}
+
 export function App() {
   const callbackHandled = useAuthCallback();
   const [isAuthenticated, setAuthenticated] = useState(Boolean(getAccessToken()));
@@ -45,6 +76,70 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState("");
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [activeScreen, setActiveScreen] = useState<"home" | "library">("home");
+  const [navDirection, setNavDirection] = useState<1 | -1>(1);
+  const isMobile = useIsMobile();
+  const mainRef = useRef<HTMLElement>(null);
+  const activeScreenRef = useRef(activeScreen);
+  activeScreenRef.current = activeScreen;
+  const isMobileRef = useRef(isMobile);
+  isMobileRef.current = isMobile;
+
+  function switchScreen(next: "home" | "library", direction: 1 | -1 = 1) {
+    setNavDirection(direction);
+    setActiveScreen(next);
+  }
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+
+    let cooldown = false;
+    let cooldownTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function startCooldown() {
+      cooldown = true;
+      if (cooldownTimer) clearTimeout(cooldownTimer);
+      cooldownTimer = setTimeout(() => { cooldown = false; }, 100);
+    }
+
+    function onWheel(e: WheelEvent) {
+      if (isMobileRef.current) return;
+
+      if (cooldown) {
+        if (cooldownTimer) clearTimeout(cooldownTimer);
+        cooldownTimer = setTimeout(() => { cooldown = false; }, 100);
+        return;
+      }
+
+      const screens = main!.querySelectorAll(".screen");
+      const screen = Array.from(screens).find(
+        (el) => getComputedStyle(el).position !== "absolute"
+      ) as HTMLElement | undefined;
+      if (!screen) return;
+
+      const canScrollDown = screen.scrollTop + screen.clientHeight < screen.scrollHeight - 1;
+      const canScrollUp = screen.scrollTop > 0;
+
+      if (e.deltaY > 0 && !canScrollDown) {
+        const idx = SCREENS.indexOf(activeScreenRef.current);
+        const nextIdx = (idx + 1) % SCREENS.length;
+        switchScreen(SCREENS[nextIdx], 1);
+        startCooldown();
+      } else if (e.deltaY < 0 && !canScrollUp) {
+        const idx = SCREENS.indexOf(activeScreenRef.current);
+        const prevIdx = (idx - 1 + SCREENS.length) % SCREENS.length;
+        switchScreen(SCREENS[prevIdx], -1);
+        startCooldown();
+      }
+    }
+
+    main.addEventListener("wheel", onWheel, { passive: true });
+    return () => {
+      main.removeEventListener("wheel", onWheel);
+    };
+  }, [callbackHandled, isAuthenticated]);
 
   async function loadDashboard() {
     if (!getAccessToken()) return;
@@ -103,6 +198,11 @@ export function App() {
     setUser(null);
     setSummary(null);
     setLibrary([]);
+    setShowUserMenu(false);
+  }
+
+  function goToLibrary() {
+    switchScreen("library");
   }
 
   const filteredLibrary = useMemo(() => {
@@ -122,121 +222,174 @@ export function App() {
     return <LoginScreen />;
   }
 
+  const topGame = summary?.most_played?.[0] ?? null;
+
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Primary">
-        <div className="brand">
+        <div className="sidebar-logo">
           <BrandMark />
-          <div>
-            <strong>SteamNStats</strong>
-            <span>Library value dashboard</span>
-          </div>
+          <span className="sidebar-brand-text" title="SteamNStats">SNS</span>
         </div>
+
         <nav className="nav-list">
-          <a className="nav-item active" href="#summary">
-            <CircleDollarSign size={18} aria-hidden="true" /> Summary
-          </a>
-          <a className="nav-item" href="#library">
-            <Gamepad2 size={18} aria-hidden="true" /> Library
-          </a>
+          <button
+            className={`nav-item ${activeScreen === "home" ? "active" : ""}`}
+            onClick={() => switchScreen("home")}
+            aria-label="Home"
+          >
+            <Home size={20} aria-hidden="true" />
+          </button>
+          <button
+            className={`nav-item ${activeScreen === "library" ? "active" : ""}`}
+            onClick={() => switchScreen("library")}
+            aria-label="Library"
+          >
+            <Gamepad2 size={20} aria-hidden="true" />
+          </button>
         </nav>
-        <div className="sidebar-note">
-          <ShieldCheck size={18} aria-hidden="true" />
-          <span>Estimated value uses current Steam store prices, not purchase history.</span>
+
+        <div className="sidebar-footer">
+          <div className="user-menu-container">
+            <button
+              className="user-avatar-button"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              aria-label="User menu"
+            >
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="" className="user-avatar" />
+              ) : (
+                <div className="avatar-fallback" />
+              )}
+              <ChevronDown size={14} aria-hidden="true" />
+            </button>
+            {showUserMenu && (
+              <div className="user-dropdown">
+                <div className="user-dropdown-info">
+                  <span className="muted-label">Signed in as</span>
+                  <strong>{user?.persona_name ?? user?.steam_id ?? "Steam user"}</strong>
+                </div>
+                <button className="user-dropdown-item" onClick={handleLogout}>
+                  <LogOut size={16} aria-hidden="true" />
+                  Log out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 
-      <main className="main">
-        <header className="topbar">
-          <div className="profile">
-            {user?.avatar_url ? <img src={user.avatar_url} alt="" /> : <div className="avatar-fallback" />}
-            <div>
-              <span className="muted-label">Signed in as</span>
-              <strong>{user?.persona_name ?? user?.steam_id ?? "Steam user"}</strong>
-            </div>
-          </div>
-          <div className="topbar-actions">
-            <button className="button secondary" onClick={handleSync} disabled={isSyncing}>
-              <RefreshCw size={17} className={isSyncing ? "spin" : ""} aria-hidden="true" />
-              {isSyncing ? "Syncing library" : "Sync library"}
-            </button>
-            <button className="icon-button" onClick={handleLogout} aria-label="Log out">
-              <LogOut size={18} aria-hidden="true" />
-            </button>
-          </div>
-        </header>
-
-        {error ? <div className="alert">{error}</div> : null}
-        {state === "loading" ? <DashboardSkeleton /> : null}
-        {state !== "loading" && summary ? (
-          <>
-            <section id="summary" className="summary-grid" aria-label="Library summary">
-              <Metric
-                icon={<CircleDollarSign size={20} aria-hidden="true" />}
-                label="Estimated library value"
-                value={formatMoney(summary.estimated_value_cents, summary.currency)}
-                detail={`${summary.priced_games} priced, ${summary.unavailable_prices} unavailable`}
-              />
-              <Metric
-                icon={<Gamepad2 size={20} aria-hidden="true" />}
-                label="Owned games"
-                value={summary.owned_games.toLocaleString()}
-                detail={`${summary.free_games} free-to-play games`}
-              />
-              <Metric
-                icon={<Clock3 size={20} aria-hidden="true" />}
-                label="Total playtime"
-                value={formatPlaytime(summary.total_playtime_minutes)}
-                detail={`Last sync ${formatDateTime(summary.last_synced_at)}`}
-              />
-            </section>
-
-            <section className="panel top-games">
-              <div className="section-heading">
-                <div>
-                  <h2>Most played</h2>
-                  <p>Sorted by lifetime playtime from your Steam library.</p>
+      <main className="main" ref={mainRef}>
+        <AnimatePresence mode="popLayout">
+          {activeScreen === "home" ? (
+            <motion.div
+              key="home"
+              className="screen"
+              initial={{ opacity: 0, y: isMobile ? 24 : `${navDirection * 100}%` }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: isMobile ? -24 : `${navDirection * -100}%` }}
+              transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <section className="hero-section">
+                <div className="hero-content">
+                  <h1 className="hero-title">
+                    Your games.<br />
+                    <span className="hero-accent">Your world.</span>
+                  </h1>
+                  <p className="hero-subtitle">A lifetime of adventures, summarized.</p>
                 </div>
-              </div>
-              {summary.most_played.length > 0 ? (
-                <div className="top-game-list">
-                  {summary.most_played.map((game) => (
-                    <div className="top-game" key={game.app_id}>
-                      {game.header_image ? <img src={game.header_image} alt="" /> : <div />}
-                      <span>{game.name}</span>
-                      <strong>{formatPlaytime(game.playtime_forever_minutes)}</strong>
+                <div className="hero-actions">
+                  <button className="button secondary" onClick={handleSync} disabled={isSyncing}>
+                    <RefreshCw size={17} className={isSyncing ? "spin" : ""} aria-hidden="true" />
+                    {isSyncing ? "Syncing" : "Sync"}
+                  </button>
+                </div>
+              </section>
+
+              {error ? <div className="alert">{error}</div> : null}
+              {state === "loading" ? <DashboardSkeleton /> : null}
+              {state !== "loading" && summary ? (
+                <>
+                  <section id="summary" className="stat-cards-row" aria-label="Library summary">
+                    <StatCard
+                      icon={<CircleDollarSign size={22} aria-hidden="true" />}
+                      iconColor="green"
+                      label="Estimated Value"
+                      value={formatMoney(summary.estimated_value_cents, summary.currency)}
+                    />
+                    <StatCard
+                      icon={<Clock3 size={22} aria-hidden="true" />}
+                      iconColor="blue"
+                      label="Hours Played"
+                      value={formatPlaytime(summary.total_playtime_minutes)}
+                    />
+                    <StatCard
+                      icon={<Gamepad2 size={22} aria-hidden="true" />}
+                      iconColor="yellow"
+                      label="Games Played"
+                      value={summary.owned_games.toLocaleString()}
+                    />
+                    <StatCard
+                      icon={<Award size={22} aria-hidden="true" />}
+                      iconColor="gold"
+                      label="Achievements"
+                      value="—"
+                      placeholder
+                    />
+                    <StatCard
+                      icon={<CheckCircle size={22} aria-hidden="true" />}
+                      iconColor="pink"
+                      label="Games Completed"
+                      value="—"
+                      placeholder
+                    />
+                  </section>
+
+                  <section className="bottom-section">
+                    <MostPlayedCard game={topGame} onGoToLibrary={goToLibrary} />
+                    <GameVarietyCard genres={MOCK_GENRES} totalGenres={0} />
+                  </section>
+                </>
+              ) : null}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="library"
+              className="screen"
+              initial={{ opacity: 0, y: isMobile ? 24 : `${navDirection * 100}%` }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: isMobile ? -24 : `${navDirection * -100}%` }}
+              transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+            >
+              {error ? <div className="alert">{error}</div> : null}
+              {state === "loading" ? <DashboardSkeleton /> : null}
+              {state !== "loading" ? (
+                <section id="library" className="panel library-panel">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Library</h2>
+                      <p>Current store prices are cached and refreshed periodically.</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState title="No playtime yet" action="Sync library" onAction={handleSync} />
-              )}
-            </section>
-
-            <section id="library" className="panel library-panel">
-              <div className="section-heading">
-                <div>
-                  <h2>Library</h2>
-                  <p>Current store prices are cached and refreshed periodically.</p>
-                </div>
-                <label className="search-box">
-                  <Search size={17} aria-hidden="true" />
-                  <span className="sr-only">Search games</span>
-                  <input
-                    value={filter}
-                    onChange={(event) => setFilter(event.target.value)}
-                    placeholder="Search games"
-                  />
-                </label>
-              </div>
-              {filteredLibrary.length > 0 ? (
-                <LibraryTable entries={filteredLibrary} />
-              ) : (
-                <EmptyState title="No games to show" action="Sync library" onAction={handleSync} />
-              )}
-            </section>
-          </>
-        ) : null}
+                    <label className="search-box">
+                      <Search size={17} aria-hidden="true" />
+                      <span className="sr-only">Search games</span>
+                      <input
+                        value={filter}
+                        onChange={(event) => setFilter(event.target.value)}
+                        placeholder="Search games"
+                      />
+                    </label>
+                  </div>
+                  {filteredLibrary.length > 0 ? (
+                    <LibraryTable entries={filteredLibrary} />
+                  ) : (
+                    <EmptyState title="No games to show" action="Sync library" onAction={handleSync} />
+                  )}
+                </section>
+              ) : null}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -389,23 +542,134 @@ function BrandMark({ size = "default" }: { size?: "default" | "large" }) {
   );
 }
 
-function Metric({
+function Sparkline({ color }: { color: string }) {
+  const points = [4, 7, 5, 9, 6, 8, 3, 7, 10, 6, 8, 5];
+  const width = 120;
+  const height = 28;
+  const maxVal = Math.max(...points);
+  const minVal = Math.min(...points);
+  const range = maxVal - minVal || 1;
+
+  const coords = points.map((val, i) => {
+    const x = (i / (points.length - 1)) * width;
+    const y = height - ((val - minVal) / range) * (height - 4) - 2;
+    return `${x},${y}`;
+  });
+
+  return (
+    <svg className="sparkline" viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+      <polyline
+        points={coords.join(" ")}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+const SPARKLINE_COLORS: Record<string, string> = {
+  green: "#a855f7",
+  blue: "#60b1ff",
+  yellow: "#4ade80",
+  gold: "#f59e0b",
+  pink: "#f472b6"
+};
+
+function StatCard({
   icon,
+  iconColor,
   label,
   value,
-  detail
+  placeholder = false
 }: {
   icon: React.ReactNode;
+  iconColor: string;
   label: string;
   value: string;
-  detail: string;
+  placeholder?: boolean;
 }) {
   return (
-    <article className="metric-card">
-      <div className="metric-icon">{icon}</div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{detail}</p>
+    <article className={`stat-card ${placeholder ? "stat-card-placeholder" : ""}`}>
+      <div className={`stat-icon stat-icon-${iconColor}`}>{icon}</div>
+      <strong className="stat-value">{value}</strong>
+      <span className="stat-label">{label}</span>
+      <Sparkline color={SPARKLINE_COLORS[iconColor] ?? "#60b1ff"} />
+    </article>
+  );
+}
+
+function MostPlayedCard({
+  game,
+  onGoToLibrary
+}: {
+  game: { app_id: number; name: string; playtime_forever_minutes: number; header_image: string | null } | null;
+  onGoToLibrary: () => void;
+}) {
+  return (
+    <article className="most-played-card">
+      <span className="card-label">Most Played Game</span>
+      {game ? (
+        <div className="most-played-content">
+          <div className="most-played-info">
+            <h3 className="most-played-name">{game.name}</h3>
+            <div className="most-played-playtime">
+              <Clock3 size={18} aria-hidden="true" />
+              <strong>{formatPlaytime(game.playtime_forever_minutes)}</strong>
+              <span>Hours Played</span>
+            </div>
+          </div>
+          {game.header_image && (
+            <img className="most-played-image" src={game.header_image} alt="" />
+          )}
+        </div>
+      ) : (
+        <p className="most-played-empty">No playtime data yet</p>
+      )}
+      <button className="go-to-library-btn" onClick={onGoToLibrary}>
+        <LibraryBig size={18} aria-hidden="true" />
+        Go to Library
+        <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    </article>
+  );
+}
+
+function GameVarietyCard({
+  genres,
+  totalGenres
+}: {
+  genres: GenreStat[];
+  totalGenres: number;
+}) {
+  const remaining = totalGenres > genres.length ? totalGenres - genres.length : 0;
+
+  return (
+    <article className="game-variety-card">
+      <h3 className="card-label">Game Variety</h3>
+      {totalGenres > 0 ? (
+        <p className="variety-subtitle">
+          You've explored <strong>{totalGenres}</strong> different genres
+        </p>
+      ) : (
+        <p className="variety-subtitle">Genre data coming soon</p>
+      )}
+      <div className="genre-tags">
+        {genres.map((g) => (
+          <div className="genre-tag" key={g.name}>
+            <span className="genre-name">{g.name}</span>
+            <span className="genre-count">{g.count > 0 ? g.count : "—"}</span>
+          </div>
+        ))}
+        {remaining > 0 && (
+          <div className="genre-tag genre-tag-more">+ {remaining} more</div>
+        )}
+      </div>
+      <div className="variety-decoration" aria-hidden="true">
+        <Gamepad2 size={32} />
+      </div>
     </article>
   );
 }
@@ -425,17 +689,17 @@ function LibraryTable({ entries }: { entries: LibraryEntry[] }) {
         <tbody>
           {entries.map((entry) => (
             <tr key={entry.game.app_id}>
-              <td>
+              <td data-label="Game">
                 <div className="game-cell">
                   {entry.game.header_image ? <img src={entry.game.header_image} alt="" /> : <div />}
                   <span>{entry.game.name}</span>
                 </div>
               </td>
-              <td>{formatPlaytime(entry.playtime_forever_minutes)}</td>
-              <td>
+              <td data-label="Playtime">{formatPlaytime(entry.playtime_forever_minutes)}</td>
+              <td data-label="Price">
                 <PriceBadge entry={entry} />
               </td>
-              <td>{formatDateTime(entry.game.metadata_fetched_at)}</td>
+              <td data-label="Updated">{formatDateTime(entry.game.metadata_fetched_at)}</td>
             </tr>
           ))}
         </tbody>

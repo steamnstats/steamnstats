@@ -44,6 +44,11 @@ export type Summary = {
   last_synced_at: string | null;
 };
 
+export type GenreStat = {
+  name: string;
+  count: number;
+};
+
 export type SyncJob = {
   id: string;
   status: "queued" | "running" | "succeeded" | "failed";
