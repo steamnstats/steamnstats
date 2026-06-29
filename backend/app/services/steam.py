@@ -40,6 +40,7 @@ class StoreMetadata:
     discount_percent: int | None
     currency: str | None
     is_free: bool
+    genres: list[str]
 
 
 def steam_openid_endpoint() -> str:
@@ -162,7 +163,7 @@ async def fetch_owned_games(steam_id: str) -> list[OwnedGame]:
 
 
 async def fetch_store_metadata(app_id: int) -> StoreMetadata | None:
-    params: QueryParams = {"appids": app_id, "filters": "basic,price_overview"}
+    params: QueryParams = {"appids": app_id, "filters": "basic,price_overview,genres"}
     async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
         response = await client.get(f"{steam_store_base()}/appdetails", params=params)
     response.raise_for_status()
@@ -172,6 +173,7 @@ async def fetch_store_metadata(app_id: int) -> StoreMetadata | None:
     data = payload.get("data", {})
     price = data.get("price_overview") or {}
     is_free = bool(data.get("is_free", False))
+    genres = [g.get("description", "") for g in data.get("genres", []) if g.get("description")]
     return StoreMetadata(
         app_id=app_id,
         name=data.get("name") or f"App {app_id}",
@@ -181,4 +183,143 @@ async def fetch_store_metadata(app_id: int) -> StoreMetadata | None:
         discount_percent=price.get("discount_percent"),
         currency=price.get("currency"),
         is_free=is_free,
+        genres=genres,
     )
+
+
+def _parse_store_metadata(app_id: int, data: dict) -> StoreMetadata:
+    price = data.get("price_overview") or {}
+    is_free = bool(data.get("is_free", False))
+    genres = [g.get("description", "") for g in data.get("genres", []) if g.get("description")]
+    return StoreMetadata(
+        app_id=app_id,
+        name=data.get("name") or f"App {app_id}",
+        header_image=data.get("header_image"),
+        current_price_cents=0 if is_free else price.get("final"),
+        initial_price_cents=0 if is_free else price.get("initial"),
+        discount_percent=price.get("discount_percent"),
+        currency=price.get("currency"),
+        is_free=is_free,
+        genres=genres,
+    )
+
+
+async def fetch_store_metadata(app_id: int) -> StoreMetadata | None:
+    params: QueryParams = {"appids": app_id, "filters": "basic,price_overview,genres"}
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+        response = await client.get(f"{steam_store_base()}/appdetails", params=params)
+    response.raise_for_status()
+    payload = response.json().get(str(app_id), {})
+    if not payload.get("success"):
+        return None
+    return _parse_store_metadata(app_id, payload.get("data", {}))
+
+
+async def fetch_store_metadata_batch(
+    app_ids: list[int], chunk_size: int = 20
+) -> dict[int, StoreMetadata | None]:
+    results: dict[int, StoreMetadata | None] = {}
+    async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+        for i in range(0, len(app_ids), chunk_size):
+            chunk = app_ids[i : i + chunk_size]
+            params: QueryParams = {
+                "appids": ",".join(str(a) for a in chunk),
+                "filters": "basic,price_overview,genres",
+            }
+            response = await client.get(f"{steam_store_base()}/appdetails", params=params)
+            response.raise_for_status()
+            body = response.json()
+            for app_id in chunk:
+                payload = body.get(str(app_id), {})
+                if payload.get("success"):
+                    results[app_id] = _parse_store_metadata(app_id, payload.get("data", {}))
+                else:
+                    results[app_id] = None
+    return results
+
+
+@dataclass(frozen=True)
+class AchievementSchema:
+    api_name: str
+    display_name: str | None
+    description: str | None
+    icon_url: str | None
+    icon_gray_url: str | None
+    hidden: bool
+
+
+@dataclass(frozen=True)
+class PlayerAchievement:
+    api_name: str
+    achieved: bool
+    unlock_time: datetime | None
+
+
+async def fetch_game_achievement_schema(app_id: int, language: str = "english") -> list[AchievementSchema]:
+    settings = get_settings()
+    if not settings.steam_web_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Steam API key missing",
+        )
+    params: QueryParams = {
+        "key": settings.steam_web_api_key,
+        "appid": app_id,
+        "l": language,
+    }
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.get(
+            f"{steam_api_base()}/ISteamUserStats/GetSchemaForGame/v2/",
+            params=params,
+        )
+    response.raise_for_status()
+    achievements = (
+        response.json()
+        .get("game", {})
+        .get("availableGameStats", {})
+        .get("achievements", [])
+    )
+    return [
+        AchievementSchema(
+            api_name=a.get("name", ""),
+            display_name=a.get("displayName"),
+            description=a.get("description"),
+            icon_url=a.get("icon"),
+            icon_gray_url=a.get("icongray"),
+            hidden=bool(a.get("hidden", 0)),
+        )
+        for a in achievements
+    ]
+
+
+async def fetch_player_achievements(steam_id: str, app_id: int, language: str = "english") -> list[PlayerAchievement]:
+    settings = get_settings()
+    if not settings.steam_web_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Steam API key missing",
+        )
+    params: QueryParams = {
+        "key": settings.steam_web_api_key,
+        "steamid": steam_id,
+        "appid": app_id,
+        "l": language,
+    }
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.get(
+            f"{steam_api_base()}/ISteamUserStats/GetPlayerAchievements/v1/",
+            params=params,
+        )
+    response.raise_for_status()
+    achievements = response.json().get("playerstats", {}).get("achievements", [])
+    parsed: list[PlayerAchievement] = []
+    for a in achievements:
+        unlock_time = a.get("unlocktime")
+        parsed.append(
+            PlayerAchievement(
+                api_name=a.get("apiname", ""),
+                achieved=bool(a.get("achieved", 0)),
+                unlock_time=datetime.fromtimestamp(unlock_time, UTC) if unlock_time else None,
+            )
+        )
+    return parsed

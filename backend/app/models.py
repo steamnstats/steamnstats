@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, UniqueConstraint
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -50,12 +50,18 @@ class Game(SQLModel, table=True):
     currency: str | None = None
     is_free: bool = False
     lowest_price_cents: int | None = None
+    genres: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False, default=list))
     metadata_source: str = "steam_store"
     metadata_fetched_at: datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
     metadata_ttl_seconds: int = 86_400
+    achievements_fetched_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+    achievements_ttl_seconds: int = 604_800
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),
@@ -66,6 +72,20 @@ class Game(SQLModel, table=True):
     )
 
     owners: list["UserGame"] = Relationship(back_populates="game")
+    achievements: list["GameAchievement"] = Relationship(back_populates="game", cascade_delete=True)
+
+
+class GameAchievement(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    game_app_id: int = Field(foreign_key="game.app_id", index=True)
+    api_name: str
+    display_name: str | None = None
+    description: str | None = None
+    icon_url: str | None = None
+    icon_gray_url: str | None = None
+    hidden: bool = False
+
+    game: Game = Relationship(back_populates="achievements")
 
 
 class UserGame(SQLModel, table=True):

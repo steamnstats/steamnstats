@@ -4,7 +4,7 @@ from alembic import context
 from sqlmodel import SQLModel
 
 from app.core.config import get_settings
-from app.models import Game, RefreshSession, SyncJob, User, UserGame  # noqa: F401
+from app.models import Game, GameAchievement, RefreshSession, SyncJob, User, UserGame  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

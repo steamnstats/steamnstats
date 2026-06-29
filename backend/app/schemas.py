@@ -32,6 +32,7 @@ class GameRead(BaseModel):
     discount_percent: int | None = None
     currency: str | None = None
     is_free: bool
+    genres: list[str] = []
     lowest_price_cents: int | None = None
     metadata_fetched_at: datetime | None = None
 
@@ -65,6 +66,24 @@ class SummaryResponse(BaseModel):
     total_playtime_minutes: int
     most_played: list[TopGameRead]
     last_synced_at: datetime | None
+
+
+class AchievementRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    api_name: str
+    display_name: str | None = None
+    description: str | None = None
+    icon_url: str | None = None
+    icon_gray_url: str | None = None
+    hidden: bool
+
+
+class GameAchievementsRead(BaseModel):
+    app_id: int
+    achievements: list[AchievementRead]
+    fetched_at: datetime | None = None
 
 
 class SyncJobRead(BaseModel):

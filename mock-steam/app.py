@@ -27,6 +27,68 @@ MOCK_GAMES = [
     },
 ]
 
+MOCK_ACHIEVEMENTS = {
+    10: [
+        {
+            "name": "ACH_HEADSHOT",
+            "displayName": "Headshot",
+            "description": "Get a headshot kill",
+            "icon": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/10/ach_headshot.jpg",
+            "icongray": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/10/ach_headshot_gray.jpg",
+            "hidden": 0,
+        },
+        {
+            "name": "ACH_MVP",
+            "displayName": "Most Valuable Player",
+            "description": "Be the MVP of a round",
+            "icon": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/10/ach_mvp.jpg",
+            "icongray": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/10/ach_mvp_gray.jpg",
+            "hidden": 0,
+        },
+    ],
+    70: [
+        {
+            "name": "ACH_CROWBAR",
+            "displayName": "Trusty Crowbar",
+            "description": "Defeat an enemy with the crowbar",
+            "icon": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/70/ach_crowbar.jpg",
+            "icongray": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/70/ach_crowbar_gray.jpg",
+            "hidden": 0,
+        },
+    ],
+    620: [
+        {
+            "name": "ACH_PORTAL",
+            "displayName": "Portal Pioneering",
+            "description": "Complete all test chambers",
+            "icon": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/620/ach_portal.jpg",
+            "icongray": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/620/ach_portal_gray.jpg",
+            "hidden": 0,
+        },
+        {
+            "name": "ACH_SECRET",
+            "displayName": "Secret Achievement",
+            "hidden": 1,
+            "icon": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/620/ach_secret.jpg",
+            "icongray": "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/620/ach_secret_gray.jpg",
+        },
+    ],
+}
+
+MOCK_PLAYER_ACHIEVEMENTS = {
+    10: [
+        {"apiname": "ACH_HEADSHOT", "achieved": 1, "unlocktime": 1718064000},
+        {"apiname": "ACH_MVP", "achieved": 0},
+    ],
+    70: [
+        {"apiname": "ACH_CROWBAR", "achieved": 1, "unlocktime": 1715472000},
+    ],
+    620: [
+        {"apiname": "ACH_PORTAL", "achieved": 1, "unlocktime": 1718841600},
+        {"apiname": "ACH_SECRET", "achieved": 0},
+    ],
+}
+
 MOCK_STORE = {
     10: {
         "name": "Counter-Strike",
@@ -38,6 +100,10 @@ MOCK_STORE = {
             "discount_percent": 0,
         },
         "is_free": False,
+        "genres": [
+            {"id": "1", "description": "Action"},
+            {"id": "37", "description": "Free to Play"},
+        ],
     },
     70: {
         "name": "Half-Life",
@@ -49,6 +115,10 @@ MOCK_STORE = {
             "discount_percent": 75,
         },
         "is_free": False,
+        "genres": [
+            {"id": "1", "description": "Action"},
+            {"id": "24", "description": "Classic"},
+        ],
     },
     620: {
         "name": "Portal 2",
@@ -60,6 +130,11 @@ MOCK_STORE = {
             "discount_percent": 90,
         },
         "is_free": False,
+        "genres": [
+            {"id": "1", "description": "Action"},
+            {"id": "2", "description": "Strategy"},
+            {"id": "5", "description": "Puzzle"},
+        ],
     },
 }
 
@@ -122,3 +197,31 @@ def appdetails(appids: str) -> dict[str, object]:
         data = MOCK_STORE.get(app_id)
         response[str(app_id)] = {"success": data is not None, "data": data or {}}
     return response
+
+
+@app.get("/ISteamUserStats/GetSchemaForGame/v2/")
+def get_schema_for_game(appid: int = Query(), l: str = Query(default="english")) -> dict[str, object]:
+    achievements = MOCK_ACHIEVEMENTS.get(appid, [])
+    return {
+        "game": {
+            "gameName": f"App {appid}",
+            "gameVersion": 1,
+            "availableGameStats": {"achievements": achievements} if achievements else {},
+        }
+    }
+
+
+@app.get("/ISteamUserStats/GetPlayerAchievements/v1/")
+def get_player_achievements(
+    steamid: str = Query(),
+    appid: int = Query(),
+    l: str = Query(default="english"),
+) -> dict[str, object]:
+    achievements = MOCK_PLAYER_ACHIEVEMENTS.get(appid, [])
+    return {
+        "playerstats": {
+            "steamID": steamid,
+            "gameName": f"App {appid}",
+            "achievements": achievements,
+        }
+    }
