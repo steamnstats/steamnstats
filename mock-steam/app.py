@@ -89,6 +89,22 @@ MOCK_PLAYER_ACHIEVEMENTS = {
     ],
 }
 
+MOCK_GENRES_PT = {
+    10: [
+        {"id": "1", "description": "Ação"},
+        {"id": "37", "description": "Gratuito para Jogar"},
+    ],
+    70: [
+        {"id": "1", "description": "Ação"},
+        {"id": "24", "description": "Clássico"},
+    ],
+    620: [
+        {"id": "1", "description": "Ação"},
+        {"id": "2", "description": "Estratégia"},
+        {"id": "5", "description": "Quebra-cabeça"},
+    ],
+}
+
 MOCK_STORE = {
     10: {
         "name": "Counter-Strike",
@@ -190,12 +206,20 @@ def get_owned_games() -> dict[str, object]:
 
 
 @app.get("/appdetails")
-def appdetails(appids: str) -> dict[str, object]:
+def appdetails(appids: str, l: str = Query(default="english")) -> dict[str, object]:
     response: dict[str, object] = {}
     for raw_app_id in appids.split(","):
         app_id = int(raw_app_id)
         data = MOCK_STORE.get(app_id)
-        response[str(app_id)] = {"success": data is not None, "data": data or {}}
+        if data is None:
+            response[str(app_id)] = {"success": False, "data": {}}
+            continue
+        data = dict(data)
+        if l == "portuguese":
+            pt_genres = MOCK_GENRES_PT.get(app_id)
+            if pt_genres is not None:
+                data = {**data, "genres": pt_genres}
+        response[str(app_id)] = {"success": True, "data": data}
     return response
 
 

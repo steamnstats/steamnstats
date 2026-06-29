@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.models import SyncStatus
 
@@ -32,7 +32,15 @@ class GameRead(BaseModel):
     discount_percent: int | None = None
     currency: str | None = None
     is_free: bool
-    genres: list[str] = []
+    genres: dict[str, list[str]] = {}
+
+    @field_validator("genres", mode="before")
+    @classmethod
+    def _coerce_genres(cls, v: object) -> dict[str, list[str]]:
+        if isinstance(v, list):
+            return {}
+        return v if isinstance(v, dict) else {}
+
     lowest_price_cents: int | None = None
     metadata_fetched_at: datetime | None = None
 

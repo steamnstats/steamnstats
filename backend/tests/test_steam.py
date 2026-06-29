@@ -195,35 +195,51 @@ async def test_fetch_store_metadata_success(monkeypatch) -> None:
     assert metadata.current_price_cents == 999
     assert metadata.is_free is False
     assert metadata.currency == "USD"
-    assert metadata.genres == []
+    assert metadata.genres == {"english": [], "portuguese": []}
 
 
 @respx.mock
 async def test_fetch_store_metadata_with_genres(monkeypatch) -> None:
     url = f"{steam_store_base()}/appdetails"
-    respx.get(url).mock(
-        return_value=Response(
-            200,
-            json={
-                "10": {
-                    "success": True,
-                    "data": {
-                        "name": "Counter-Strike",
-                        "is_free": False,
-                        "genres": [
-                            {"id": "1", "description": "Action"},
-                            {"id": "37", "description": "Free to Play"},
-                        ],
-                    },
-                }
+    en_data = {
+        "10": {
+            "success": True,
+            "data": {
+                "name": "Counter-Strike",
+                "is_free": False,
+                "genres": [
+                    {"id": "1", "description": "Action"},
+                    {"id": "37", "description": "Free to Play"},
+                ],
             },
-        )
-    )
+        }
+    }
+    pt_data = {
+        "10": {
+            "success": True,
+            "data": {
+                "genres": [
+                    {"id": "1", "description": "Ação"},
+                    {"id": "37", "description": "Gratuito para Jogar"},
+                ],
+            },
+        }
+    }
+
+    def appdetails_handler(request):
+        if request.url.params.get("l") == "portuguese":
+            return Response(200, json=pt_data)
+        return Response(200, json=en_data)
+
+    respx.get(url).mock(side_effect=appdetails_handler)
 
     metadata = await fetch_store_metadata(10)
 
     assert metadata is not None
-    assert metadata.genres == ["Action", "Free to Play"]
+    assert metadata.genres == {
+        "english": ["Action", "Free to Play"],
+        "portuguese": ["Ação", "Gratuito para Jogar"],
+    }
 
 
 @respx.mock
@@ -251,7 +267,7 @@ async def test_fetch_store_metadata_free_game(monkeypatch) -> None:
     assert metadata.is_free is True
     assert metadata.current_price_cents == 0
     assert metadata.initial_price_cents == 0
-    assert metadata.genres == []
+    assert metadata.genres == {"english": [], "portuguese": []}
 
 
 @respx.mock
@@ -269,38 +285,56 @@ async def test_fetch_store_metadata_unsuccessful(monkeypatch) -> None:
 @respx.mock
 async def test_fetch_store_metadata_batch_success(monkeypatch) -> None:
     url = f"{steam_store_base()}/appdetails"
-    respx.get(url).mock(
-        return_value=Response(
-            200,
-            json={
-                "10": {
-                    "success": True,
-                    "data": {
-                        "name": "CS",
-                        "is_free": False,
-                        "price_overview": {"final": 999, "initial": 999, "discount_percent": 0, "currency": "USD"},
-                        "genres": [{"id": "1", "description": "Action"}],
-                    },
-                },
-                "20": {
-                    "success": True,
-                    "data": {
-                        "name": "Portal",
-                        "is_free": True,
-                    },
-                },
-                "30": {"success": False},
+
+    en_body = {
+        "10": {
+            "success": True,
+            "data": {
+                "name": "CS",
+                "is_free": False,
+                "price_overview": {"final": 999, "initial": 999, "discount_percent": 0, "currency": "USD"},
+                "genres": [{"id": "1", "description": "Action"}],
             },
-        )
-    )
+        },
+        "20": {
+            "success": True,
+            "data": {
+                "name": "Portal",
+                "is_free": True,
+            },
+        },
+        "30": {"success": False},
+    }
+    pt_body = {
+        "10": {
+            "success": True,
+            "data": {
+                "genres": [{"id": "1", "description": "Ação"}],
+            },
+        },
+        "20": {
+            "success": True,
+            "data": {
+                "genres": [{"id": "2", "description": "Estratégia"}],
+            },
+        },
+    }
+
+    def appdetails_handler(request):
+        if request.url.params.get("l") == "portuguese":
+            return Response(200, json=pt_body)
+        return Response(200, json=en_body)
+
+    respx.get(url).mock(side_effect=appdetails_handler)
 
     results = await fetch_store_metadata_batch([10, 20, 30])
 
     assert results[10] is not None
     assert results[10].name == "CS"
-    assert results[10].genres == ["Action"]
+    assert results[10].genres == {"english": ["Action"], "portuguese": ["Ação"]}
     assert results[20] is not None
     assert results[20].is_free is True
+    assert results[20].genres == {"english": [], "portuguese": ["Estratégia"]}
     assert results[30] is None
 
 

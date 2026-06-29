@@ -50,7 +50,7 @@ class Game(SQLModel, table=True):
     currency: str | None = None
     is_free: bool = False
     lowest_price_cents: int | None = None
-    genres: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False, default=list))
+    genres: dict[str, list[str]] = Field(default_factory=dict, sa_column=Column(JSON, nullable=False, default=dict))
     metadata_source: str = "steam_store"
     metadata_fetched_at: datetime | None = Field(
         default=None,

@@ -17,9 +17,11 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("game", sa.Column("genres", sa.JSON(), nullable=False, server_default="[]"))
+    op.add_column("game", sa.Column("genres", sa.JSON(), nullable=False, server_default="{}"))
     op.add_column("game", sa.Column("achievements_fetched_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("game", sa.Column("achievements_ttl_seconds", sa.Integer(), nullable=False, server_default="604800"))
+
+    op.execute("UPDATE game SET genres = '{}' WHERE genres = '[]' OR genres IS NULL")
 
     op.create_table(
         "gameachievement",

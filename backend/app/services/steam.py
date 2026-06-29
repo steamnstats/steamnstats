@@ -30,6 +30,9 @@ class OwnedGame:
     last_played_at: datetime | None
 
 
+GENRE_LANGUAGES = ("english", "portuguese")
+
+
 @dataclass(frozen=True)
 class StoreMetadata:
     app_id: int
@@ -40,7 +43,7 @@ class StoreMetadata:
     discount_percent: int | None
     currency: str | None
     is_free: bool
-    genres: list[str]
+    genres: dict[str, list[str]]
 
 
 def steam_openid_endpoint() -> str:
@@ -162,77 +165,78 @@ async def fetch_owned_games(steam_id: str) -> list[OwnedGame]:
     return parsed
 
 
+def _extract_genres(data: dict) -> list[str]:
+    return [g.get("description", "") for g in data.get("genres", []) if g.get("description")]
+
+
+def _parse_store_metadata(app_id: int, data: dict, genres_by_lang: dict[str, list[str]] | None = None) -> StoreMetadata:
+    price = data.get("price_overview") or {}
+    is_free = bool(data.get("is_free", False))
+    return StoreMetadata(
+        app_id=app_id,
+        name=data.get("name") or f"App {app_id}",
+        header_image=data.get("header_image"),
+        current_price_cents=0 if is_free else price.get("final"),
+        initial_price_cents=0 if is_free else price.get("initial"),
+        discount_percent=price.get("discount_percent"),
+        currency=price.get("currency"),
+        is_free=is_free,
+        genres=genres_by_lang or {},
+    )
+
+
 async def fetch_store_metadata(app_id: int) -> StoreMetadata | None:
-    params: QueryParams = {"appids": app_id, "filters": "basic,price_overview,genres"}
+    base_params: QueryParams = {"appids": app_id, "filters": "basic,price_overview,genres"}
     async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-        response = await client.get(f"{steam_store_base()}/appdetails", params=params)
+        response = await client.get(f"{steam_store_base()}/appdetails", params=base_params)
     response.raise_for_status()
     payload = response.json().get(str(app_id), {})
     if not payload.get("success"):
         return None
     data = payload.get("data", {})
-    price = data.get("price_overview") or {}
-    is_free = bool(data.get("is_free", False))
-    genres = [g.get("description", "") for g in data.get("genres", []) if g.get("description")]
-    return StoreMetadata(
-        app_id=app_id,
-        name=data.get("name") or f"App {app_id}",
-        header_image=data.get("header_image"),
-        current_price_cents=0 if is_free else price.get("final"),
-        initial_price_cents=0 if is_free else price.get("initial"),
-        discount_percent=price.get("discount_percent"),
-        currency=price.get("currency"),
-        is_free=is_free,
-        genres=genres,
-    )
+    genres_by_lang: dict[str, list[str]] = {"english": _extract_genres(data)}
 
-
-def _parse_store_metadata(app_id: int, data: dict) -> StoreMetadata:
-    price = data.get("price_overview") or {}
-    is_free = bool(data.get("is_free", False))
-    genres = [g.get("description", "") for g in data.get("genres", []) if g.get("description")]
-    return StoreMetadata(
-        app_id=app_id,
-        name=data.get("name") or f"App {app_id}",
-        header_image=data.get("header_image"),
-        current_price_cents=0 if is_free else price.get("final"),
-        initial_price_cents=0 if is_free else price.get("initial"),
-        discount_percent=price.get("discount_percent"),
-        currency=price.get("currency"),
-        is_free=is_free,
-        genres=genres,
-    )
-
-
-async def fetch_store_metadata(app_id: int) -> StoreMetadata | None:
-    params: QueryParams = {"appids": app_id, "filters": "basic,price_overview,genres"}
+    pt_params: QueryParams = {"appids": app_id, "filters": "genres", "l": "portuguese"}
     async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-        response = await client.get(f"{steam_store_base()}/appdetails", params=params)
-    response.raise_for_status()
-    payload = response.json().get(str(app_id), {})
-    if not payload.get("success"):
-        return None
-    return _parse_store_metadata(app_id, payload.get("data", {}))
+        pt_response = await client.get(f"{steam_store_base()}/appdetails", params=pt_params)
+    if pt_response.status_code == 200:
+        pt_data = pt_response.json().get(str(app_id), {}).get("data", {})
+        genres_by_lang["portuguese"] = _extract_genres(pt_data)
+
+    return _parse_store_metadata(app_id, data, genres_by_lang)
 
 
 async def fetch_store_metadata_batch(
     app_ids: list[int], chunk_size: int = 20
 ) -> dict[int, StoreMetadata | None]:
     results: dict[int, StoreMetadata | None] = {}
+    if not app_ids:
+        return results
+
     async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
         for i in range(0, len(app_ids), chunk_size):
             chunk = app_ids[i : i + chunk_size]
-            params: QueryParams = {
-                "appids": ",".join(str(a) for a in chunk),
-                "filters": "basic,price_overview,genres",
-            }
-            response = await client.get(f"{steam_store_base()}/appdetails", params=params)
-            response.raise_for_status()
-            body = response.json()
+            appids_csv = ",".join(str(a) for a in chunk)
+
+            en_params: QueryParams = {"appids": appids_csv, "filters": "basic,price_overview,genres"}
+            en_response = await client.get(f"{steam_store_base()}/appdetails", params=en_params)
+            en_response.raise_for_status()
+            en_body = en_response.json()
+
+            pt_params: QueryParams = {"appids": appids_csv, "filters": "genres", "l": "portuguese"}
+            pt_response = await client.get(f"{steam_store_base()}/appdetails", params=pt_params)
+            pt_body = pt_response.json() if pt_response.status_code == 200 else {}
+
             for app_id in chunk:
-                payload = body.get(str(app_id), {})
-                if payload.get("success"):
-                    results[app_id] = _parse_store_metadata(app_id, payload.get("data", {}))
+                en_payload = en_body.get(str(app_id), {})
+                if en_payload.get("success"):
+                    en_data = en_payload.get("data", {})
+                    pt_data = pt_body.get(str(app_id), {}).get("data", {})
+                    genres_by_lang = {
+                        "english": _extract_genres(en_data),
+                        "portuguese": _extract_genres(pt_data),
+                    }
+                    results[app_id] = _parse_store_metadata(app_id, en_data, genres_by_lang)
                 else:
                     results[app_id] = None
     return results
