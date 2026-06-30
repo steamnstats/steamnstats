@@ -13,7 +13,9 @@ import {
   ShieldCheck,
   BarChart3,
   Database,
-  ArrowRight
+  ArrowRight,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +25,15 @@ import { formatDateTime, formatMoney, formatPlaytime } from "./format";
 import type { GenreStat, LibraryEntry, Summary, User } from "./types";
 
 type LoadState = "idle" | "loading" | "loaded" | "error";
+
+type SortColumn = "name" | "playtime" | "price" | "updated";
+type SortDirection = "asc" | "desc";
+
+function getPriceValue(entry: LibraryEntry): number {
+  if (entry.game.is_free) return 0;
+  if (entry.game.current_price_cents === null) return Infinity;
+  return entry.game.current_price_cents;
+}
 
 const SCREENS = ["home", "library"] as const;
 
@@ -76,6 +87,8 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setSyncing] = useState(false);
   const [filter, setFilter] = useState("");
+  const [sortColumn, setSortColumn] = useState<SortColumn>("playtime");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeScreen, setActiveScreen] = useState<"home" | "library">("home");
   const [navDirection, setNavDirection] = useState<1 | -1>(1);
@@ -207,12 +220,40 @@ export function App() {
 
   const filteredLibrary = useMemo(() => {
     const query = filter.trim().toLowerCase();
-    const sorted = [...library].sort(
-      (a, b) => b.playtime_forever_minutes - a.playtime_forever_minutes
-    );
-    if (!query) return sorted;
-    return sorted.filter((entry) => entry.game.name.toLowerCase().includes(query));
-  }, [filter, library]);
+    const filtered = query
+      ? library.filter((entry) => entry.game.name.toLowerCase().includes(query))
+      : library;
+
+    const sorted = [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortColumn) {
+        case "name":
+          cmp = a.game.name.localeCompare(b.game.name);
+          break;
+        case "playtime":
+          cmp = a.playtime_forever_minutes - b.playtime_forever_minutes;
+          break;
+        case "price":
+          cmp = getPriceValue(a) - getPriceValue(b);
+          break;
+        case "updated":
+          cmp = (a.game.metadata_fetched_at ?? "").localeCompare(b.game.metadata_fetched_at ?? "");
+          break;
+      }
+      return sortDirection === "asc" ? cmp : -cmp;
+    });
+
+    return sorted;
+  }, [filter, library, sortColumn, sortDirection]);
+
+  function handleSort(column: SortColumn) {
+    if (column === sortColumn) {
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(column);
+      setSortDirection(column === "name" ? "asc" : "desc");
+    }
+  }
 
   if (!callbackHandled) {
     return <ShellSkeleton />;
@@ -381,7 +422,12 @@ export function App() {
                     </label>
                   </div>
                   {filteredLibrary.length > 0 ? (
-                    <LibraryTable entries={filteredLibrary} />
+                    <LibraryTable
+                      entries={filteredLibrary}
+                      sortColumn={sortColumn}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                    />
                   ) : (
                     <EmptyState title="No games to show" action="Sync library" onAction={handleSync} />
                   )}
@@ -674,16 +720,45 @@ function GameVarietyCard({
   );
 }
 
-function LibraryTable({ entries }: { entries: LibraryEntry[] }) {
+function LibraryTable({
+  entries,
+  sortColumn,
+  sortDirection,
+  onSort
+}: {
+  entries: LibraryEntry[];
+  sortColumn: SortColumn;
+  sortDirection: SortDirection;
+  onSort: (column: SortColumn) => void;
+}) {
+  const columns: { key: SortColumn; label: string }[] = [
+    { key: "name", label: "Game" },
+    { key: "playtime", label: "Playtime" },
+    { key: "price", label: "Current price" },
+    { key: "updated", label: "Updated" }
+  ];
+
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Game</th>
-            <th>Playtime</th>
-            <th>Current price</th>
-            <th>Updated</th>
+            {columns.map((col) => (
+              <th key={col.key}>
+                <button
+                  className={`sort-th ${sortColumn === col.key ? "active" : ""}`}
+                  onClick={() => onSort(col.key)}
+                >
+                  {col.label}
+                  {sortColumn === col.key &&
+                    (sortDirection === "asc" ? (
+                      <ArrowUp size={14} aria-hidden="true" />
+                    ) : (
+                      <ArrowDown size={14} aria-hidden="true" />
+                    ))}
+                </button>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>

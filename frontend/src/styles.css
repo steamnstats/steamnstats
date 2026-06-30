@@ -739,6 +739,27 @@ thead th {
   border-top: 0;
 }
 
+.sort-th {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-th:hover {
+  color: var(--color-primary);
+}
+
+.sort-th.active {
+  color: var(--color-primary);
+}
+
 tbody tr:hover {
   background: rgba(255, 255, 255, 0.03);
 }
