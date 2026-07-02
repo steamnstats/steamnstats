@@ -22,5 +22,5 @@ def session() -> Generator[Session, None, None]:
         poolclass=StaticPool,
     )
     SQLModel.metadata.create_all(engine)
-    with Session(engine) as db:
+    with Session(engine, expire_on_commit=False) as db:
         yield db
