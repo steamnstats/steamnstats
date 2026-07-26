@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import parse_qsl, urlencode
+from time import sleep
 
 import httpx
 from fastapi import HTTPException, Request, status
@@ -163,10 +164,17 @@ async def fetch_owned_games(steam_id: str) -> list[OwnedGame]:
 
 async def fetch_store_metadata(app_id: int) -> StoreMetadata | None:
     params: QueryParams = {"appids": app_id, "filters": "basic,price_overview"}
-    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-        response = await client.get(f"{steam_store_base()}/appdetails", params=params)
-    response.raise_for_status()
-    payload = response.json().get(str(app_id), {})
+    control = 1
+    while (control <= 1000):
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            response = await client.get(f"{steam_store_base()}/appdetails", params=params)
+        if response.status_code == 429 and control <= 1000:
+            control *= 2
+            sleep(control)
+        else: 
+            response.raise_for_status()
+            payload = response.json().get(str(app_id), {})
+            break
     if not payload.get("success"):
         return None
     data = payload.get("data", {})
