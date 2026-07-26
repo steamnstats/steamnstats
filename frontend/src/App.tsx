@@ -10,7 +10,6 @@ import {
   LogOut,
   RefreshCw,
   Search,
-  ShieldCheck,
   BarChart3,
   Database,
   ArrowRight,
