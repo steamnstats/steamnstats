@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, clearTokens, getAccessToken, getRefreshToken, setTokens } from "./api";
 import logoMark from "./assets/steamnstats-logo.svg";
+import loginAPI from "./assets/steam-login.png";
 import { formatDateTime, formatMoney, formatPlaytime } from "./format";
 import type { GenreStat, LibraryEntry, Summary, User } from "./types";
 
@@ -460,8 +461,7 @@ function LoginScreen() {
               <strong>OpenID verified, no Steam password shared</strong>
             </div>
             <a className="button primary login-cta" href={api.steamLoginUrl}>
-              <ShieldCheck size={18} aria-hidden="true" />
-              Sign in with Steam
+	    <img src={loginAPI} alt="Sign in with Steam"/>
             </a>
           </div>
 
