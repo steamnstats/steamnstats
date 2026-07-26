@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from urllib.parse import parse_qsl, urlencode
 from time import sleep
+from urllib.parse import parse_qsl, urlencode
 
 import httpx
 from fastapi import HTTPException, Request, status
